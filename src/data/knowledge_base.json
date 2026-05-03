@@ -1,0 +1,49 @@
+{
+  "election": "Uttar Pradesh Legislative Assembly Election 2027",
+  "total_seats": 403,
+  "phases": [
+    {
+      "phase": 1,
+      "date": "2027-02-10",
+      "districts": ["Shamli", "Meerut", "Muzaffarnagar", "Baghpat", "Hapur", "Gautam Buddha Nagar", "Bulandshahr", "Aligarh", "Mathura", "Agra"]
+    },
+    {
+      "phase": 2,
+      "date": "2027-02-14",
+      "districts": ["Saharanpur", "Bijnor", "Amroha", "Sambhal", "Moradabad", "Rampur", "Bareilly", "Budaun", "Shahjahanpur"]
+    },
+    {
+      "phase": 3,
+      "date": "2027-02-20",
+      "districts": ["Hathras", "Firozabad", "Kasganj", "Etah", "Mainpuri", "Farrukhabad", "Kannauj", "Etawah", "Auraiya", "Kanpur Dehat", "Kanpur Nagar", "Jalaun", "Jhansi", "Lalitpur", "Hamirpur", "Mahoba"]
+    },
+    {
+      "phase": 4,
+      "date": "2027-02-23",
+      "districts": ["Pilibhit", "Lakhimpur Kheri", "Sitapur", "Hardoi", "Unnao", "Lucknow", "Rae Bareli", "Banda", "Fatehpur"]
+    },
+    {
+      "phase": 5,
+      "date": "2027-02-27",
+      "districts": ["Shravasti", "Bahraich", "Barabanki", "Gonda", "Ayodhya", "Amethi", "Sultanpur", "Pratapgarh", "Kaushambi", "Prayagraj", "Chitrakoot"]
+    },
+    {
+      "phase": 6,
+      "date": "2027-03-03",
+      "districts": ["Ambedkar Nagar", "Balrampur", "Siddharthnagar", "Basti", "Sant Kabir Nagar", "Maharajganj", "Gorakhpur", "Kushinagar", "Deoria", "Ballia"]
+    },
+    {
+      "phase": 7,
+      "date": "2027-03-07",
+      "districts": ["Azamgarh", "Mau", "Jaunpur", "Ghazipur", "Chandauli", "Varanasi", "Sant Ravidas Nagar", "Mirzapur", "Sonbhadra"]
+    }
+  ],
+  "key_dates": {
+    "voter_registration_deadline": "2026-12-31",
+    "counting_of_votes": "2027-03-10"
+  },
+  "important_links": {
+    "voter_portal": "https://voters.eci.gov.in",
+    "electoral_search": "https://electoralsearch.eci.gov.in"
+  }
+}
