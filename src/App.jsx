@@ -84,15 +84,15 @@ function getChat() {
   return chatSession;
 }
 
-// Removed old getChat placement
-// ─── Extract roadmap step & suggestions ────────────────────────────────────────
-function extractRoadmapStep(text) {
+// ─── Pure helper functions (outside component for stable references) ─────────
+export function extractRoadmapStep(text) {
   const match = text.match(/ROADMAP_STEP:(\d)/);
   return match ? parseInt(match[1], 10) : null;
 }
 
-function extractSuggestions(text) {
-  const match = text.match(/SUGGESTIONS:(\[.*?\])/);
+export function extractSuggestions(text) {
+  // Use [\s\S] to match across newlines in case the AI wraps the JSON
+  const match = text.match(/SUGGESTIONS:(\[[\s\S]*?\])/);
   if (match) {
     try {
       return JSON.parse(match[1]);
@@ -103,11 +103,32 @@ function extractSuggestions(text) {
   return [];
 }
 
-function cleanText(text) {
+export function cleanText(text) {
   return text
-    .replace(/\nROADMAP_STEP:\d\s*/g, '')
-    .replace(/\nSUGGESTIONS:\[.*?\]\s*/g, '')
+    .replace(/ROADMAP_STEP:\d\s*/g, '')
+    .replace(/SUGGESTIONS:\[[\s\S]*?\]\s*/g, '')
     .trimEnd();
+}
+
+function getWelcomeMessage(t) {
+  return {
+    role: 'model',
+    parts: [
+      {
+        text: `Jai Hind! 🇮🇳 I'm **CivicGuide**, your interactive Indian election assistant.\n\nI'm here to help you with everything about the Indian electoral process — from registering as a voter to casting your ballot on election day.\n\nAll information is sourced from the **Election Commission of India (ECI)**.\n\n**${t.placeholder}**\n- 📋 ${t.roadmap[0]}\n- 🔍 ${t.roadmap[1]}\n- 📍 ${t.roadmap[2]}\n- 👥 ${t.roadmap[3]}\n- 🗳️ ${t.roadmap[4]}`,
+      },
+    ],
+  };
+}
+
+function getInitialSuggestions(t) {
+  return [
+    `📋 ${t.roadmap[0]}`,
+    `🔍 ${t.roadmap[1]}`,
+    `📍 ${t.roadmap[2]}`,
+    `👥 ${t.roadmap[3]}`,
+    `🗳️ ${t.roadmap[4]}`,
+  ];
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -115,27 +136,10 @@ export default function App() {
   const [language, setLanguage] = useState('English');
   const t = translations[language] || translations['English'];
 
-  const getWelcomeMessage = (t) => ({
-    role: 'model',
-    parts: [
-      {
-        text: `Jai Hind! 🇮🇳 I'm **CivicGuide**, your interactive Indian election assistant.\n\nI'm here to help you with everything about the Indian electoral process — from registering as a voter to casting your ballot on election day.\n\nAll information is sourced from the **Election Commission of India (ECI)**.\n\n**${t.placeholder}**\n- 📋 ${t.roadmap[0]}\n- 🔍 ${t.roadmap[1]}\n- 📍 ${t.roadmap[2]}\n- 👥 ${t.roadmap[3]}\n- 🗳️ ${t.roadmap[4]}`,
-      },
-    ],
-  });
-
-  const getInitialSuggestions = (t) => [
-    `📋 ${t.roadmap[0]}`,
-    `🔍 ${t.roadmap[1]}`,
-    `📍 ${t.roadmap[2]}`,
-    `👥 ${t.roadmap[3]}`,
-    `🗳️ ${t.roadmap[4]}`,
-  ];
-
-  const [messages, setMessages] = useState([getWelcomeMessage(t)]);
+  const [messages, setMessages] = useState(() => [getWelcomeMessage(translations['English'])]);
   const [roadmapStep, setRoadmapStep] = useState(0);
-  const [suggestions, setSuggestions] = useState(getInitialSuggestions(t));
-  
+  const [suggestions, setSuggestions] = useState(() => getInitialSuggestions(translations['English']));
+
   const ROADMAP_STAGES = useMemo(() => [
     { id: 0, label: t.roadmap[0], icon: '📋', detail: t.details[0] },
     { id: 1, label: t.roadmap[1], icon: '🔍', detail: t.details[1] },
@@ -143,13 +147,14 @@ export default function App() {
     { id: 3, label: t.roadmap[3], icon: '👥', detail: t.details[3] },
     { id: 4, label: t.roadmap[4], icon: '🗳️', detail: t.details[4] },
   ], [t]);
-  
+
+  // Reset chat session + UI when language changes so the AI context is fresh
   useEffect(() => {
-    if (messages.length === 1) {
-      setMessages([getWelcomeMessage(t)]);
-      setSuggestions(getInitialSuggestions(t));
-    }
-  }, [language]);
+    chatSession = null;
+    setMessages([getWelcomeMessage(t)]);
+    setSuggestions(getInitialSuggestions(t));
+    setRoadmapStep(0);
+  }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isLoading, setIsLoading] = useState(false);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
@@ -174,8 +179,8 @@ export default function App() {
 
     try {
       const chat = getChat();
-      const promptContext = language === 'English' 
-        ? userText 
+      const promptContext = language === 'English'
+        ? userText
         : `[CRITICAL INSTRUCTION: The user prefers ${language}. You MUST respond entirely in ${language}. Also ensure your quick reply SUGGESTIONS are translated to ${language}.]\n\nUser: ${userText}`;
       const result = await chat.sendMessage(promptContext);
       const rawText = result.response.text();
@@ -201,31 +206,23 @@ export default function App() {
           ...prev,
           {
             role: 'model',
-            parts: [
-              {
-                text: '⚠️ **API Key not configured.** Please add your Gemini API key to the `.env.local` file:\n```\nVITE_GEMINI_API_KEY=your_key_here\n```\nThen restart the dev server.',
-              },
-            ],
+            parts: [{ text: '⚠️ **API Key not configured.** Please add your Gemini API key to the `.env.local` file:\n```\nVITE_GEMINI_API_KEY=your_key_here\n```\nThen restart the dev server.' }],
           },
         ]);
       } else {
-        console.error("Gemini API Error:", err);
+        console.error('Gemini API Error:', err);
         setMessages((prev) => [
           ...prev,
           {
             role: 'model',
-            parts: [
-              {
-                text: `⚠️ **Connection Error:** \`${err.message}\`\n\nPlease check your browser console for more details. If you just added the API key, try restarting the dev server.`,
-              },
-            ],
+            parts: [{ text: `⚠️ **Connection Error:** \`${err.message}\`\n\nPlease check your browser console for more details. If you just added the API key, try restarting the dev server.` }],
           },
         ]);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, language]);
 
   return (
     <div className="app-container">

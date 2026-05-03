@@ -40,7 +40,8 @@
   ],
   "key_dates": {
     "voter_registration_deadline": "2026-12-31",
-    "counting_of_votes": "2027-03-10"
+    "counting_of_votes": "2027-03-10",
+    "result_declaration_date": "2027-03-10"
   },
   "important_links": {
     "voter_portal": "https://voters.eci.gov.in",

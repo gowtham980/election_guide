@@ -13,6 +13,7 @@ const langMap = {
 export default function ChatPane({ messages, onSend, isLoading, suggestions = [], placeholder = 'Ask anything...', sendLabel = 'Send', language = 'English' }) {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState('');
   const bottomRef = useRef(null);
   const recognitionRef = useRef(null);
 
@@ -40,6 +41,7 @@ export default function ChatPane({ messages, onSend, isLoading, suggestions = []
   }, []);
 
   const toggleListen = () => {
+    setSpeechError('');
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -49,19 +51,19 @@ export default function ChatPane({ messages, onSend, isLoading, suggestions = []
         recognitionRef.current.start();
         setIsListening(true);
       } else {
-        alert("Speech recognition not supported in this browser.");
+        setSpeechError('Speech recognition is not supported in this browser. Please type your question.');
       }
     }
   };
 
   const speakText = (text) => {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Stop current speaking
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = langMap[language] || 'en-IN';
       window.speechSynthesis.speak(utterance);
     } else {
-      alert("Text-to-speech not supported in this browser.");
+      setSpeechError('Text-to-speech is not supported in this browser.');
     }
   };
 
@@ -86,6 +88,13 @@ export default function ChatPane({ messages, onSend, isLoading, suggestions = []
 
   return (
     <div className="chat-pane">
+      {/* Inline speech capability warning */}
+      {speechError && (
+        <div className="speech-error-banner" role="alert" aria-live="assertive">
+          <span>⚠️ {speechError}</span>
+          <button className="speech-error-close" onClick={() => setSpeechError('')} aria-label="Dismiss">&times;</button>
+        </div>
+      )}
       {/* Message List */}
       <div className="chat-messages">
         {messages.map((msg, i) => {

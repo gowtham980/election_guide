@@ -4,6 +4,32 @@ ElectionGuide India is a dual-interface web application (Chat AI + Visual Roadma
 
 **Live Demo:** [https://electionguide-1035020186370.us-central1.run.app](https://electionguide-1035020186370.us-central1.run.app)
 
+## 🎯 Chosen Vertical
+**GovTech & Social Impact (CivicTech)**  
+This project targets the massive demographic of first-time and rural voters in India. By bridging the information gap regarding electoral procedures through an accessible, multilingual AI companion, it aims to increase voter turnout and reduce the friction caused by complex bureaucratic jargon.
+
+## 🧠 Approach and Logic
+The core logic revolves around translating a rigid, procedural system into an empathetic, conversational journey. 
+- **RAG-lite Grounding:** Rather than letting the LLM hallucinate election procedures, we anchor the Gemini AI with a local JSON knowledge base containing official Election Commission of India (ECI) data, dates, and forms.
+- **State Machine UI:** The conversation drives a 5-step state machine (Registration, Find Booth, Candidate Info, Polling Day, Vote Cast). The AI is prompted to return specific hidden tags (e.g., `ROADMAP_STEP:[0-4]`) which the React frontend parses to sync the visual "subway map" tracker on the sidebar.
+- **Accessibility-First:** We approached the UI by assuming low tech-literacy. This dictated the inclusion of voice-to-text, text-to-speech, High-Contrast modes, and an "Elderly Mode" for enhanced readability.
+
+## ⚙️ How the Solution Works
+1. **User Interaction:** The user speaks or types their query in one of four supported languages (English, Hindi, Tamil, Telugu).
+2. **AI Processing:** The frontend sends the query along with a strictly engineered `SYSTEM_PROMPT` to the Gemini API. The prompt instructs the AI to be non-partisan, informative, and to append UI-syncing tags.
+3. **UI Synchronization:** As the stream returns, the React app extracts the conversational text to display in the chat pane, whilst stripping out the metadata tags (`ROADMAP_STEP`, `SUGGESTIONS`) to update the roadmap progress and quick-reply buttons in real-time.
+4. **Interactive Simulation:** When reaching step 4, the AI guides the user through a mock EVM/VVPAT interaction via text, culminating in a triumphant "Victory Modal" with confetti once the vote is successfully "cast".
+
+## 💭 Assumptions Made
+- **Neutrality by Prompting:** We assume the LLM will successfully adhere to the strict non-partisan guidelines set in the system prompt without requiring an external moderation layer for the scope of this prototype.
+- **Network Availability:** The current architecture assumes the user has an active internet connection to communicate with the Gemini API. Offline fallback is not currently supported.
+- **Browser Capabilities:** The voice input and text-to-speech features assume the user is on a modern browser that supports the Web Speech API.
+
+## 🏆 Key Highlights (Hackathon Criteria)
+- **Effective use of Google Services:** Deeply integrates the **Google Gemini API** for its core conversational logic (RAG-lite), deploys seamlessly via **Google Cloud Run** for scalable and secure hosting, and leverages **Firebase Analytics** to track user engagement and accessibility preferences.
+- **Practical and real-world usability:** Solves a genuine civic problem by simplifying the complex Indian voter journey. It includes multi-lingual support (English, Hindi, Tamil, Telugu), an "Elderly Mode" (high-contrast + large text), and voice interactions, ensuring it is highly accessible to users regardless of their tech-literacy.
+- **Clean and maintainable code:** Follows modern React best practices with highly modular components (`ChatPane`, `TimelineRoadmap`). It employs Vite for rapid builds, Vitest for robust testing, and a streamlined Docker/Nginx configuration with strict security headers, ensuring the architecture is easy to maintain and scale.
+
 ## ✨ Features
 
 - **Conversational AI:** Integrated with Gemini (via `@google/generative-ai`) using a custom `CivicGuide` system prompt that enforces strict neutrality and grounds responses in official Election Commission of India (ECI) data.
