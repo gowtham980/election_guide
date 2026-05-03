@@ -12,18 +12,20 @@ This project targets the massive demographic of first-time and rural voters in I
 The core logic revolves around translating a rigid, procedural system into an empathetic, conversational journey. 
 - **RAG-lite Grounding:** Rather than letting the LLM hallucinate election procedures, we anchor the Gemini AI with a local JSON knowledge base containing official Election Commission of India (ECI) data, dates, and forms.
 - **State Machine UI:** The conversation drives a 5-step state machine (Registration, Find Booth, Candidate Info, Polling Day, Vote Cast). The AI is prompted to return specific hidden tags (e.g., `ROADMAP_STEP:[0-4]`) which the React frontend parses to sync the visual "subway map" tracker on the sidebar.
-- **Accessibility-First:** We approached the UI by assuming low tech-literacy. This dictated the inclusion of voice-to-text, text-to-speech, High-Contrast modes, and an "Elderly Mode" for enhanced readability.
+- **Accessibility-First:** We approached the UI by assuming low tech-literacy. This dictated the inclusion of voice-to-text, text-to-speech, High-Contrast modes, and an "Elderly Mode" for enhanced readability. We also use a custom inline UI banner to gracefully handle browsers that lack Web Speech API support.
+- **Test-Driven Reliability:** Core utilities (like parsing AI responses and roadmap steps) are decoupled from React components and rigorously tested using Vitest to ensure stability across complex, multiline AI outputs.
 
 ## ⚙️ How the Solution Works
-1. **User Interaction:** The user speaks or types their query in one of four supported languages (English, Hindi, Tamil, Telugu).
+1. **User Interaction:** The user speaks or types their query in one of four supported languages (English, Hindi, Tamil, Telugu). Changing the language dynamically resets the AI's context to ensure pure, localized responses.
 2. **AI Processing:** The frontend sends the query along with a strictly engineered `SYSTEM_PROMPT` to the Gemini API. The prompt instructs the AI to be non-partisan, informative, and to append UI-syncing tags.
 3. **UI Synchronization:** As the stream returns, the React app extracts the conversational text to display in the chat pane, whilst stripping out the metadata tags (`ROADMAP_STEP`, `SUGGESTIONS`) to update the roadmap progress and quick-reply buttons in real-time.
 4. **Interactive Simulation:** When reaching step 4, the AI guides the user through a mock EVM/VVPAT interaction via text, culminating in a triumphant "Victory Modal" with confetti once the vote is successfully "cast".
+5. **Analytics & Deployment:** User interactions are securely tracked via Firebase Analytics (configured with strict CSP headers in Nginx), and the entire application is containerized and served via Google Cloud Run for fast, secure, and scalable access.
 
 ## 💭 Assumptions Made
 - **Neutrality by Prompting:** We assume the LLM will successfully adhere to the strict non-partisan guidelines set in the system prompt without requiring an external moderation layer for the scope of this prototype.
-- **Network Availability:** The current architecture assumes the user has an active internet connection to communicate with the Gemini API. Offline fallback is not currently supported.
-- **Browser Capabilities:** The voice input and text-to-speech features assume the user is on a modern browser that supports the Web Speech API.
+- **Network Availability:** The current architecture assumes the user has an active internet connection to communicate with the Gemini API and Firebase Analytics. Offline fallback is not currently supported.
+- **Browser Capabilities:** The voice input and text-to-speech features assume the user is on a modern browser that supports the Web Speech API. If unsupported, we assume the user can still interact via the text input fallback gracefully provided by our error-handling UI.
 
 ## 🏆 Key Highlights (Hackathon Criteria)
 - **Effective use of Google Services:** Deeply integrates the **Google Gemini API** for its core conversational logic (RAG-lite), deploys seamlessly via **Google Cloud Run** for scalable and secure hosting, and leverages **Firebase Analytics** to track user engagement and accessibility preferences.
