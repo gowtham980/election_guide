@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, Suspense, useMemo } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { logEvent } from 'firebase/analytics';
+import { analytics } from './utils/firebase';
 import './App.css';
-import ChatPane from './components/ChatPane';
-import CountdownWidget from './components/CountdownWidget';
-import TimelineRoadmap from './components/TimelineRoadmap';
 import { translations } from './utils/translations';
 import kbData from './data/knowledge_base.json';
+
+const ChatPane = React.lazy(() => import('./components/ChatPane'));
+const CountdownWidget = React.lazy(() => import('./components/CountdownWidget'));
+const TimelineRoadmap = React.lazy(() => import('./components/TimelineRoadmap'));
 
 // ─── CivicGuide System Prompt ────────────────────────────────────────────────
 const SYSTEM_PROMPT = `[ROLE & IDENTITY]
@@ -129,17 +132,17 @@ export default function App() {
     `🗳️ ${t.roadmap[4]}`,
   ];
 
-  const ROADMAP_STAGES = [
+  const [messages, setMessages] = useState([getWelcomeMessage(t)]);
+  const [roadmapStep, setRoadmapStep] = useState(0);
+  const [suggestions, setSuggestions] = useState(getInitialSuggestions(t));
+  
+  const ROADMAP_STAGES = useMemo(() => [
     { id: 0, label: t.roadmap[0], icon: '📋', detail: t.details[0] },
     { id: 1, label: t.roadmap[1], icon: '🔍', detail: t.details[1] },
     { id: 2, label: t.roadmap[2], icon: '📍', detail: t.details[2] },
     { id: 3, label: t.roadmap[3], icon: '👥', detail: t.details[3] },
     { id: 4, label: t.roadmap[4], icon: '🗳️', detail: t.details[4] },
-  ];
-
-  const [messages, setMessages] = useState([getWelcomeMessage(t)]);
-  const [roadmapStep, setRoadmapStep] = useState(0);
-  const [suggestions, setSuggestions] = useState(getInitialSuggestions(t));
+  ], [t]);
   
   useEffect(() => {
     if (messages.length === 1) {
@@ -163,6 +166,8 @@ export default function App() {
   const sendMessage = useCallback(async (userText) => {
     if (!userText.trim() || isLoading) return;
 
+    if (analytics) logEvent(analytics, 'chat_message_sent', { text_length: userText.length });
+
     const userMsg = { role: 'user', parts: [{ text: userText }] };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
@@ -176,7 +181,10 @@ export default function App() {
       const rawText = result.response.text();
 
       const step = extractRoadmapStep(rawText);
-      if (step !== null) setRoadmapStep(step);
+      if (step !== null) {
+        setRoadmapStep(step);
+        if (analytics) logEvent(analytics, 'roadmap_step_changed', { step });
+      }
 
       const newSuggestions = extractSuggestions(rawText);
       setSuggestions(newSuggestions);
@@ -242,13 +250,20 @@ export default function App() {
             className="a11y-toggle" 
             onClick={() => setHighContrast(!highContrast)}
             title="Toggle High Contrast"
+            aria-label="Toggle High Contrast"
+            tabIndex="0"
           >
             🌓
           </button>
           <select 
             className="language-selector" 
             value={language} 
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => {
+              setLanguage(e.target.value);
+              if (analytics) logEvent(analytics, 'language_changed', { language: e.target.value });
+            }}
+            aria-label="Select Language"
+            tabIndex="0"
           >
             {Object.keys(translations).map(lang => (
               <option key={lang} value={lang}>{lang}</option>
@@ -257,38 +272,45 @@ export default function App() {
           <button 
             className="sidebar-toggle" 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-expanded={isSidebarOpen}
+            aria-label="Toggle Sidebar Roadmap"
+            tabIndex="0"
           >
             {isSidebarOpen ? '✕ Close' : '🗺️ Roadmap'}
           </button>
-          <span className="badge badge-eci">ECI Verified</span>
-          <span className="badge badge-ai">Gemini AI</span>
+          <span className="badge badge-eci" aria-label="ECI Verified">ECI Verified</span>
+          <span className="badge badge-ai" aria-label="Gemini AI Powered">Gemini AI</span>
         </div>
       </header>
 
       {/* ── Main Layout ── */}
       <main className="app-main">
         {/* Left: Chat */}
-        <section className="chat-section">
+        <section className="chat-section" aria-live="polite">
           {apiKeyMissing && (
-            <div className="api-key-banner">
+            <div className="api-key-banner" role="alert">
               🔑 Add <code>VITE_GEMINI_API_KEY</code> to <code>.env.local</code> and restart the server
             </div>
           )}
-          <ChatPane
-            messages={messages}
-            onSend={sendMessage}
-            isLoading={isLoading}
-            suggestions={suggestions}
-            placeholder={t.placeholder}
-            sendLabel={t.send}
-            language={language}
-          />
+          <Suspense fallback={<div className="loading-fallback" aria-label="Loading chat interface...">Loading...</div>}>
+            <ChatPane
+              messages={messages}
+              onSend={sendMessage}
+              isLoading={isLoading}
+              suggestions={suggestions}
+              placeholder={t.placeholder}
+              sendLabel={t.send}
+              language={language}
+            />
+          </Suspense>
         </section>
 
         {/* Right: Sidebar */}
-        <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-          <CountdownWidget title={t.countdownTitle} daysLabel={t.days} hoursLabel={t.hours} minsLabel={t.minutes} secsLabel={t.seconds} />
-          <TimelineRoadmap stages={ROADMAP_STAGES} currentStep={roadmapStep} title={t.roadmapTitle} />
+        <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`} aria-label="Election Roadmap Sidebar">
+          <Suspense fallback={<div className="loading-fallback" aria-label="Loading roadmap...">Loading roadmap...</div>}>
+            <CountdownWidget title={t.countdownTitle} daysLabel={t.days} hoursLabel={t.hours} minsLabel={t.minutes} secsLabel={t.seconds} />
+            <TimelineRoadmap stages={ROADMAP_STAGES} currentStep={roadmapStep} title={t.roadmapTitle} />
+          </Suspense>
 
           <div className="official-links">
             <h3 className="links-title">🔗 Official ECI Portals</h3>
